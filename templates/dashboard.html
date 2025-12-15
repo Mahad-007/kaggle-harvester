@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kaggle Data Ingestion Engine - Dashboard</title>
+    <title>DataSync Hub - Real-time Dataset Ingestion</title>
     <style>
         * {
             margin: 0;
@@ -12,11 +12,11 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Space Grotesk', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #F5F5F0;
             min-height: 100vh;
-            padding: 20px;
-            color: #333;
+            padding: 24px;
+            color: #000;
         }
 
         .container {
@@ -24,783 +24,1099 @@
             margin: 0 auto;
         }
 
+        /* Neobrutalism Header */
         header {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            background: #FFDB58;
+            padding: 32px;
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0 #000;
+            margin-bottom: 32px;
+            position: relative;
         }
 
         h1 {
-            color: #667eea;
-            font-size: 32px;
-            margin-bottom: 5px;
+            font-size: 48px;
+            font-weight: 900;
+            color: #000;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: -1px;
         }
 
         .subtitle {
-            color: #666;
             font-size: 16px;
+            font-weight: 600;
+            color: #000;
+            opacity: 0.7;
         }
 
+        /* Platform Selector Card */
+        .platform-card {
+            background: #fff;
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0 #000;
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+
+        .platform-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .platform-selector {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .platform-selector label {
+            font-size: 20px;
+            font-weight: 800;
+            color: #000;
+            text-transform: uppercase;
+        }
+
+        select {
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 700;
+            border: 3px solid #000;
+            background: #fff;
+            cursor: pointer;
+            min-width: 200px;
+            text-transform: uppercase;
+        }
+
+        select:focus {
+            outline: none;
+            background: #FFDB58;
+        }
+
+        /* Neobrutalism Buttons */
+        .btn {
+            padding: 14px 28px;
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            border: 3px solid #000;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #000;
+        }
+
+        .btn-primary {
+            background: #00F5A0;
+            color: #000;
+            box-shadow: 4px 4px 0 #000;
+        }
+
+        .btn-primary:hover {
+            background: #00D68F;
+        }
+
+        .btn-warning {
+            background: #FF6B35;
+            color: #fff;
+            box-shadow: 4px 4px 0 #000;
+        }
+
+        .btn-warning:hover {
+            background: #E55A2B;
+        }
+
+        .btn-danger {
+            background: #FF006E;
+            color: #fff;
+            box-shadow: 4px 4px 0 #000;
+        }
+
+        .btn-danger:hover {
+            background: #E0005E;
+        }
+
+        .btn-info {
+            background: #00C2FF;
+            color: #000;
+            box-shadow: 4px 4px 0 #000;
+        }
+
+        .btn-info:hover {
+            background: #00A8E0;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .platform-status {
+            font-weight: 700;
+            font-size: 14px;
+            padding: 8px 16px;
+            background: #000;
+            color: #FFDB58;
+            border: 3px solid #000;
+            text-transform: uppercase;
+        }
+
+        /* Stats Grid - Neobrutalism Cards */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
         }
 
         .stat-card {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+            background: #fff;
+            padding: 28px;
+            border: 4px solid #000;
+            box-shadow: 6px 6px 0 #000;
+            transition: all 0.2s ease;
         }
 
         .stat-card:hover {
-            transform: translateY(-5px);
+            transform: translate(-2px, -2px);
+            box-shadow: 8px 8px 0 #000;
+        }
+
+        .stat-card:nth-child(1) { border-top: 8px solid #00F5A0; }
+        .stat-card:nth-child(2) { border-top: 8px solid #FF6B35; }
+        .stat-card:nth-child(3) { border-top: 8px solid #00C2FF; }
+        .stat-card:nth-child(4) { border-top: 8px solid #FF006E; }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #666;
+            margin-bottom: 8px;
         }
 
         .stat-value {
-            font-size: 36px;
-            font-weight: bold;
-            color: #667eea;
-            margin: 10px 0;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            font-size: 48px;
+            font-weight: 900;
+            color: #000;
+            margin: 8px 0;
+            line-height: 1;
         }
 
         .stat-sublabel {
-            color: #999;
-            font-size: 12px;
-            margin-top: 5px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #888;
+            margin-top: 8px;
         }
 
+        /* Section */
         .section {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-            margin-bottom: 30px;
+            background: #fff;
+            padding: 32px;
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0 #000;
+            margin-bottom: 32px;
         }
 
         .section-title {
-            font-size: 24px;
-            color: #333;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #667eea;
+            font-size: 28px;
+            font-weight: 900;
+            color: #000;
+            margin-bottom: 24px;
+            text-transform: uppercase;
+            padding-bottom: 12px;
+            border-bottom: 4px solid #000;
         }
 
-        .dataset-list {
-            display: grid;
-            gap: 15px;
+        /* Settings Controls */
+        .settings-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
         }
 
-        .dataset-item {
-            background: #f8f9fa;
+        .control-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .control-label {
+            font-size: 18px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #000;
+        }
+
+        .engine-status {
+            padding: 8px 16px;
+            font-weight: 800;
+            font-size: 12px;
+            text-transform: uppercase;
+            border: 3px solid #000;
+        }
+
+        .engine-status.running {
+            background: #00F5A0;
+            color: #000;
+        }
+
+        .engine-status.stopped {
+            background: #FF006E;
+            color: #fff;
+        }
+
+        /* Interval Buttons */
+        .interval-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .interval-btn {
+            padding: 10px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            border: 3px solid #000;
+            background: #fff;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        .interval-btn:hover {
+            background: #FFDB58;
+        }
+
+        .interval-btn.active {
+            background: #000;
+            color: #FFDB58;
+        }
+
+        /* Slider */
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin: 16px 0;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 12px;
+            border: 3px solid #000;
+            background: #fff;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 28px;
+            height: 28px;
+            background: #00F5A0;
+            border: 3px solid #000;
+            cursor: pointer;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            border: 3px solid #000;
+            text-align: center;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Dataset List */
+        .datasets-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .dataset-card {
+            background: #fff;
+            border: 3px solid #000;
             padding: 20px;
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-            transition: all 0.3s ease;
+            box-shadow: 4px 4px 0 #000;
+            transition: all 0.2s ease;
         }
 
-        .dataset-item:hover {
-            background: #e9ecef;
-            border-left-color: #764ba2;
+        .dataset-card:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0 #000;
+        }
+
+        .dataset-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
         }
 
         .dataset-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
+            font-size: 20px;
+            font-weight: 800;
+            color: #000;
+            flex: 1;
+        }
+
+        .platform-badge {
+            padding: 4px 12px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            border: 2px solid #000;
+            display: inline-block;
+        }
+
+        .badge-kaggle {
+            background: #00C2FF;
+            color: #000;
+        }
+
+        .badge-hf {
+            background: #FFDB58;
+            color: #000;
         }
 
         .dataset-meta {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-        }
-
-        .dataset-meta span {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .status {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
+            gap: 16px;
+            margin-bottom: 12px;
+            font-size: 13px;
             font-weight: 600;
+            color: #666;
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            font-size: 11px;
+            font-weight: 800;
             text-transform: uppercase;
+            border: 2px solid #000;
         }
 
         .status-completed {
-            background: #d4edda;
-            color: #155724;
+            background: #00F5A0;
+            color: #000;
         }
 
         .status-failed {
-            background: #f8d7da;
-            color: #721c24;
+            background: #FF006E;
+            color: #fff;
         }
 
-        .tags {
+        .status-downloading {
+            background: #FF6B35;
+            color: #fff;
+        }
+
+        .dataset-link {
+            display: inline-block;
+            margin-top: 8px;
+            color: #000;
+            font-weight: 700;
+            text-decoration: none;
+            border-bottom: 2px solid #000;
+        }
+
+        .dataset-link:hover {
+            background: #FFDB58;
+        }
+
+        .dataset-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin-top: 10px;
+            margin-top: 12px;
         }
 
         .tag {
-            background: #667eea;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 12px;
+            padding: 4px 10px;
+            background: #F5F5F0;
+            border: 2px solid #000;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
         }
 
-        .logs {
-            background: #1e1e1e;
-            color: #d4d4d4;
+        /* Logs */
+        .log-container {
+            background: #000;
+            color: #00F5A0;
             padding: 20px;
-            border-radius: 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
+            border: 3px solid #000;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 12px;
             max-height: 400px;
             overflow-y: auto;
             line-height: 1.6;
         }
 
-        .log-line {
+        .log-entry {
             margin-bottom: 4px;
         }
 
-        .log-info { color: #4ec9b0; }
-        .log-warning { color: #dcdcaa; }
-        .log-error { color: #f48771; }
+        .log-timestamp {
+            color: #FFDB58;
+            font-weight: 700;
+        }
 
-        .loading {
-            text-align: center;
-            padding: 40px;
+        /* Toast Notifications - Neobrutalism */
+        .toast-container {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: #fff;
+            border: 4px solid #000;
+            box-shadow: 6px 6px 0 #000;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .toast.removing {
+            animation: slideOut 0.3s ease forwards;
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .toast-success {
+            border-left: 8px solid #00F5A0;
+        }
+
+        .toast-error {
+            border-left: 8px solid #FF006E;
+        }
+
+        .toast-warning {
+            border-left: 8px solid #FF6B35;
+        }
+
+        .toast-info {
+            border-left: 8px solid #00C2FF;
+        }
+
+        .toast-icon {
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+            color: #000;
+            margin-bottom: 4px;
+        }
+
+        .toast-message {
+            font-size: 13px;
+            font-weight: 600;
             color: #666;
         }
 
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .refresh-btn {
-            background: #667eea;
-            color: white;
+        .toast-close {
+            background: #000;
+            color: #fff;
             border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
+            width: 24px;
+            height: 24px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            float: right;
+            font-weight: 900;
+            font-size: 16px;
+            line-height: 1;
         }
 
-        .refresh-btn:hover {
-            background: #764ba2;
-            transform: translateY(-2px);
+        .toast-close:hover {
+            background: #FF006E;
         }
 
-        .last-updated {
-            color: #999;
-            font-size: 12px;
-            margin-top: 10px;
-            text-align: right;
-        }
-
-        .settings-panel {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-        }
-
-        .setting-label {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .engine-status {
-            font-size: 14px;
-            color: #666;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #999;
-            animation: pulse 2s infinite;
-        }
-
-        .status-dot.running {
-            background: #28a745;
-        }
-
-        .status-dot.stopped {
-            background: #dc3545;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .preset-btn {
-            background: white;
-            border: 2px solid #667eea;
-            color: #667eea;
-            padding: 8px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .preset-btn:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-2px);
-        }
-
-        .preset-btn.active {
-            background: #667eea;
-            color: white;
-        }
-
-        .apply-btn {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .apply-btn:hover {
-            background: #218838;
-            transform: translateY(-2px);
-        }
-
-        .restart-btn {
-            background: #ffc107;
-            color: #333;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .restart-btn:hover {
-            background: #e0a800;
-            transform: translateY(-2px);
-        }
-
-        .stop-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-
-        .stop-btn:hover {
-            background: #c82333;
-            transform: translateY(-2px);
-        }
-
-        .message {
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 14px;
-            animation: fadeIn 0.3s ease;
-        }
-
-        .message-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .message-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .message-info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        /* Responsive */
         @media (max-width: 768px) {
+            h1 {
+                font-size: 32px;
+            }
+
+            .platform-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
             .stats-grid {
                 grid-template-columns: 1fr;
             }
 
-            h1 {
-                font-size: 24px;
+            .toast-container {
+                left: 16px;
+                right: 16px;
+                max-width: none;
             }
+        }
 
-            .preset-btn {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
+        /* Loading State */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Refresh Button */
+        .refresh-btn {
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 800;
+            background: #fff;
+            border: 3px solid #000;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-left: 12px;
+        }
+
+        .refresh-btn:hover {
+            background: #FFDB58;
+        }
+
+        .refresh-btn:active {
+            transform: translate(2px, 2px);
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- Header -->
         <header>
-            <h1>🚀 Kaggle Data Ingestion Engine</h1>
-            <p class="subtitle">Real-time monitoring dashboard for automated dataset collection</p>
+            <h1>⚡ DataSync Hub</h1>
+            <p class="subtitle">Real-time automated dataset collection & management</p>
         </header>
 
-        <div class="stats-grid" id="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Total Datasets</div>
-                <div class="stat-value" id="total-datasets">-</div>
-                <div class="stat-sublabel">Downloaded locally</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Storage Used</div>
-                <div class="stat-value" id="storage-used">-</div>
-                <div class="stat-sublabel" id="storage-available">Available: -</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Successful</div>
-                <div class="stat-value" id="successful-downloads">-</div>
-                <div class="stat-sublabel">Downloads completed</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Failed</div>
-                <div class="stat-value" id="failed-downloads" style="color: #f48771;">-</div>
-                <div class="stat-sublabel">Downloads failed</div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">⚙️ Settings</h2>
-            <div class="settings-panel">
-                <div class="setting-item">
-                    <label class="setting-label">
-                        <span style="font-size: 18px; font-weight: 600;">Polling Interval</span>
-                        <span class="engine-status" id="engine-status">
-                            <span class="status-dot"></span> Checking...
-                        </span>
-                    </label>
-                    <div style="margin: 20px 0;">
-                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                            <button class="preset-btn" onclick="setPollingInterval(60)">1 min</button>
-                            <button class="preset-btn" onclick="setPollingInterval(300)">5 min</button>
-                            <button class="preset-btn" onclick="setPollingInterval(900)">15 min</button>
-                            <button class="preset-btn" onclick="setPollingInterval(1800)">30 min</button>
-                            <button class="preset-btn" onclick="setPollingInterval(3600)">1 hour</button>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 15px;">
-                            <input type="range" id="interval-slider" min="60" max="3600" step="60" value="60"
-                                   style="flex: 1; height: 8px; border-radius: 5px;">
-                            <input type="number" id="interval-input" min="10" max="86400" value="60"
-                                   style="width: 100px; padding: 8px; border: 2px solid #667eea; border-radius: 8px; font-size: 16px;">
-                            <span style="color: #666;">seconds</span>
-                        </div>
-                        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
-                            <button class="apply-btn" onclick="applyInterval()">✓ Apply Changes</button>
-                            <button class="restart-btn" onclick="restartEngine()">↻ Restart Engine</button>
-                            <button class="stop-btn" onclick="stopEngine()">⏹ Stop Engine</button>
-                        </div>
-                    </div>
-                    <div id="settings-message" style="margin-top: 15px;"></div>
+        <!-- Platform Selector -->
+        <div class="platform-card">
+            <div class="platform-controls">
+                <div class="platform-selector">
+                    <label for="platformDropdown">Platform:</label>
+                    <select id="platformDropdown">
+                        <option value="kaggle">📊 Kaggle</option>
+                        <option value="huggingface">🤗 Hugging Face</option>
+                    </select>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <button id="savePlatformBtn" class="btn btn-primary">
+                        Switch & Restart
+                    </button>
+                    <span id="platformStatus" class="platform-status"></span>
                 </div>
             </div>
         </div>
 
+        <!-- Stats Grid -->
+        <div class="stats-grid" id="stats-grid">
+            <!-- Stats will be populated by JavaScript -->
+        </div>
+
+        <!-- Settings Section -->
+        <div class="section">
+            <h2 class="section-title">⚙️ Settings</h2>
+            <div class="settings-controls">
+                <div class="control-group">
+                    <div class="control-label">Polling Interval</div>
+                    <div id="engineStatus" class="engine-status">Checking...</div>
+                </div>
+
+                <div>
+                    <div class="interval-buttons">
+                        <button class="interval-btn" data-seconds="60">1 min</button>
+                        <button class="interval-btn" data-seconds="300">5 min</button>
+                        <button class="interval-btn" data-seconds="900">15 min</button>
+                        <button class="interval-btn" data-seconds="1800">30 min</button>
+                        <button class="interval-btn" data-seconds="3600">1 hour</button>
+                    </div>
+
+                    <div class="slider-container">
+                        <input type="range" id="pollingSlider" min="10" max="3600" value="60" step="10">
+                        <input type="number" id="pollingInput" value="60" min="10" max="3600">
+                        <span style="font-weight: 700;">seconds</span>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button id="applyPollingBtn" class="btn btn-primary">✓ Apply</button>
+                        <button id="restartBtn" class="btn btn-warning">↻ Restart</button>
+                        <button id="stopBtn" class="btn btn-danger">⏹ Stop</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Datasets -->
         <div class="section">
             <h2 class="section-title">
                 Recent Datasets
-                <button class="refresh-btn" onclick="refreshData()">↻ Refresh</button>
+                <button class="refresh-btn" id="refreshBtn">↻ Refresh</button>
             </h2>
-            <div id="datasets-container">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading datasets...</p>
-                </div>
+            <div class="datasets-container" id="datasets-container">
+                <!-- Datasets will be populated by JavaScript -->
             </div>
         </div>
 
+        <!-- Recent Logs -->
         <div class="section">
             <h2 class="section-title">Recent Logs</h2>
-            <div class="logs" id="logs-container">
-                <div class="loading">Loading logs...</div>
+            <div class="log-container" id="log-container">
+                <!-- Logs will be populated by JavaScript -->
             </div>
-            <div class="last-updated" id="last-updated">Last updated: -</div>
+            <div style="margin-top: 12px; font-size: 12px; font-weight: 700; text-align: right;" id="logTimestamp">
+                Last updated: --
+            </div>
         </div>
     </div>
 
-    <script>
-        // Auto-refresh interval (30 seconds)
-        const REFRESH_INTERVAL = 30000;
-        let refreshTimer;
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
 
-        // Fetch statistics
-        async function fetchStatistics() {
+    <script>
+        let currentPlatform = 'kaggle';
+        let currentInterval = 60;
+
+        // Toast Notification System
+        function showToast(type, title, message, duration = 4000) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+
+            const icons = {
+                success: '✓',
+                error: '✕',
+                warning: '⚠',
+                info: 'ℹ'
+            };
+
+            toast.innerHTML = `
+                <div class="toast-icon">${icons[type]}</div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('removing');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // Load Statistics
+        async function loadStatistics() {
             try {
                 const response = await fetch('/api/statistics');
                 const stats = await response.json();
 
-                document.getElementById('total-datasets').textContent = stats.datasets.total;
-                document.getElementById('storage-used').textContent = stats.datasets.total_size_gb + ' GB';
-                document.getElementById('storage-available').textContent = 'Available: ' + stats.storage.available_space_gb + ' GB';
-                document.getElementById('successful-downloads').textContent = stats.state.successful_downloads;
-                document.getElementById('failed-downloads').textContent = stats.state.failed_downloads;
-            } catch (error) {
-                console.error('Error fetching statistics:', error);
-            }
-        }
-
-        // Fetch datasets
-        async function fetchDatasets() {
-            try {
-                const response = await fetch('/api/datasets?limit=20');
-                const datasets = await response.json();
-
-                const container = document.getElementById('datasets-container');
-
-                if (datasets.length === 0) {
-                    container.innerHTML = '<div class="loading">No datasets found yet. The engine will start downloading soon.</div>';
-                    return;
-                }
-
-                container.innerHTML = datasets.map(dataset => `
-                    <div class="dataset-item">
-                        <div class="dataset-title">${dataset.title || dataset.ref}</div>
-                        <div class="dataset-meta">
-                            <span>👤 ${dataset.creator}</span>
-                            <span>💾 ${dataset.size_mb} MB</span>
-                            <span>📥 ${dataset.download_count} downloads</span>
-                            <span class="status status-${dataset.status}">${dataset.status}</span>
-                        </div>
-                        <div style="margin-top: 10px;">
-                            <a href="${dataset.url}" target="_blank" style="color: #667eea; text-decoration: none; font-size: 14px;">
-                                View on Kaggle →
-                            </a>
-                        </div>
-                        ${dataset.tags && dataset.tags.length > 0 ? `
-                            <div class="tags">
-                                ${dataset.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-                            </div>
-                        ` : ''}
+                const statsGrid = document.getElementById('stats-grid');
+                statsGrid.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-label">Total Datasets</div>
+                        <div class="stat-value">${stats.datasets?.total || 0}</div>
+                        <div class="stat-sublabel">${stats.datasets?.by_platform_text || 'Downloaded locally'}</div>
                     </div>
-                `).join('');
+                    <div class="stat-card">
+                        <div class="stat-label">Storage Used</div>
+                        <div class="stat-value">${stats.datasets?.total_size_gb?.toFixed(2) || '0'} GB</div>
+                        <div class="stat-sublabel">Available: ${stats.storage?.available_space_gb?.toFixed(2) || '0'} GB</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Successful</div>
+                        <div class="stat-value">${stats.state?.successful_downloads || 0}</div>
+                        <div class="stat-sublabel">Downloads completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Failed</div>
+                        <div class="stat-value">${stats.state?.failed_downloads || 0}</div>
+                        <div class="stat-sublabel">Downloads failed</div>
+                    </div>
+                `;
             } catch (error) {
-                console.error('Error fetching datasets:', error);
+                console.error('Error loading statistics:', error);
+                showToast('error', 'Error', 'Failed to load statistics');
             }
         }
 
-        // Fetch logs
-        async function fetchLogs() {
+        // Load Platform
+        async function loadPlatform() {
             try {
-                const response = await fetch('/api/logs?lines=30');
-                const logs = await response.json();
+                const response = await fetch('/api/platform');
+                const data = await response.json();
 
-                const container = document.getElementById('logs-container');
-
-                if (logs.length === 0) {
-                    container.innerHTML = '<div class="loading">No logs available yet.</div>';
-                    return;
+                if (data.platform) {
+                    currentPlatform = data.platform;
+                    document.getElementById('platformDropdown').value = currentPlatform;
+                    document.getElementById('platformStatus').textContent = `Active: ${currentPlatform}`;
                 }
-
-                container.innerHTML = logs.map(log => {
-                    let className = 'log-line';
-                    if (log.includes('[INFO]')) className += ' log-info';
-                    else if (log.includes('[WARNING]')) className += ' log-warning';
-                    else if (log.includes('[ERROR]')) className += ' log-error';
-
-                    return `<div class="${className}">${escapeHtml(log)}</div>`;
-                }).join('');
-
-                // Scroll to bottom
-                container.scrollTop = container.scrollHeight;
-
-                // Update last updated time
-                document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
             } catch (error) {
-                console.error('Error fetching logs:', error);
+                console.error('Error loading platform:', error);
             }
         }
 
-        // Escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // Handle platform save button
+        document.getElementById('savePlatformBtn').addEventListener('click', async function() {
+            const selectedPlatform = document.getElementById('platformDropdown').value;
 
-        // Refresh all data
-        async function refreshData() {
-            await Promise.all([
-                fetchStatistics(),
-                fetchDatasets(),
-                fetchLogs()
-            ]);
-        }
+            if (selectedPlatform === currentPlatform) {
+                showToast('info', 'No Change', `Platform is already set to ${selectedPlatform}`);
+                return;
+            }
 
-        // Start auto-refresh
-        function startAutoRefresh() {
-            clearInterval(refreshTimer);
-            refreshTimer = setInterval(refreshData, REFRESH_INTERVAL);
-        }
+            const platformEmoji = selectedPlatform === 'kaggle' ? '📊' : '🤗';
+            const platformName = selectedPlatform === 'kaggle' ? 'Kaggle' : 'Hugging Face';
 
-        // Initial load
-        refreshData();
-        startAutoRefresh();
+            if (!confirm(`Switch to ${platformEmoji} ${platformName}?\n\nThis will:\n1. Update configuration\n2. Restart the engine\n3. Start polling ${platformName}\n\nContinue?`)) {
+                return;
+            }
 
-        // Refresh when page becomes visible
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                refreshData();
+            const btn = document.getElementById('savePlatformBtn');
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Switching...';
+
+            try {
+                const response = await fetch('/api/platform', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        platform: selectedPlatform,
+                        auto_restart: true
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('success', 'Success', data.message);
+                    currentPlatform = selectedPlatform;
+                    document.getElementById('platformStatus').textContent = `Active: ${currentPlatform}`;
+
+                    if (data.restarted) {
+                        setTimeout(() => location.reload(), 2000);
+                    }
+                } else {
+                    showToast('error', 'Error', data.error || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('error', 'Failed', 'Could not switch platform');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
             }
         });
 
-        // Polling Interval Management
-        const intervalSlider = document.getElementById('interval-slider');
-        const intervalInput = document.getElementById('interval-input');
-
-        // Sync slider and input
-        intervalSlider.addEventListener('input', (e) => {
-            intervalInput.value = e.target.value;
-        });
-
-        intervalInput.addEventListener('input', (e) => {
-            const value = parseInt(e.target.value);
-            if (value >= 60 && value <= 3600) {
-                intervalSlider.value = value;
-            }
-        });
-
-        // Load current polling interval
+        // Load Polling Interval
         async function loadPollingInterval() {
             try {
                 const response = await fetch('/api/config/polling-interval');
                 const data = await response.json();
 
                 if (data.interval_seconds) {
-                    intervalInput.value = data.interval_seconds;
-                    if (data.interval_seconds >= 60 && data.interval_seconds <= 3600) {
-                        intervalSlider.value = data.interval_seconds;
-                    }
+                    currentInterval = data.interval_seconds;
+                    document.getElementById('pollingSlider').value = currentInterval;
+                    document.getElementById('pollingInput').value = currentInterval;
+                    updateIntervalButtons(currentInterval);
                 }
             } catch (error) {
                 console.error('Error loading polling interval:', error);
             }
         }
 
-        // Set interval from preset buttons
-        function setPollingInterval(seconds) {
-            intervalInput.value = seconds;
-            if (seconds >= 60 && seconds <= 3600) {
-                intervalSlider.value = seconds;
-            }
-
-            // Update active state
-            document.querySelectorAll('.preset-btn').forEach(btn => {
+        function updateIntervalButtons(seconds) {
+            document.querySelectorAll('.interval-btn').forEach(btn => {
                 btn.classList.remove('active');
+                if (parseInt(btn.dataset.seconds) === seconds) {
+                    btn.classList.add('active');
+                }
             });
-            event.target.classList.add('active');
         }
 
-        // Apply interval changes
-        async function applyInterval() {
-            const seconds = parseInt(intervalInput.value);
+        // Interval button handlers
+        document.querySelectorAll('.interval-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const seconds = parseInt(this.dataset.seconds);
+                document.getElementById('pollingSlider').value = seconds;
+                document.getElementById('pollingInput').value = seconds;
+                updateIntervalButtons(seconds);
+            });
+        });
 
-            if (seconds < 10 || seconds > 86400) {
-                showMessage('Interval must be between 10 and 86400 seconds', 'error');
-                return;
-            }
+        // Slider sync
+        document.getElementById('pollingSlider').addEventListener('input', function() {
+            document.getElementById('pollingInput').value = this.value;
+            updateIntervalButtons(parseInt(this.value));
+        });
+
+        document.getElementById('pollingInput').addEventListener('input', function() {
+            document.getElementById('pollingSlider').value = this.value;
+            updateIntervalButtons(parseInt(this.value));
+        });
+
+        // Apply polling interval
+        document.getElementById('applyPollingBtn').addEventListener('click', async function() {
+            const newInterval = parseInt(document.getElementById('pollingInput').value);
 
             try {
                 const response = await fetch('/api/config/polling-interval', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        interval_seconds: seconds
-                    })
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({interval_seconds: newInterval})
                 });
 
                 const data = await response.json();
 
-                if (response.ok) {
-                    showMessage(data.message, 'success');
+                if (data.success) {
+                    showToast('success', 'Applied', `Polling interval set to ${newInterval} seconds`);
+                    currentInterval = newInterval;
                 } else {
-                    showMessage(data.error || 'Failed to update interval', 'error');
+                    showToast('error', 'Error', data.error || 'Failed to update');
                 }
             } catch (error) {
-                showMessage('Error updating interval: ' + error.message, 'error');
+                showToast('error', 'Failed', 'Could not update interval');
             }
-        }
+        });
 
-        // Stop engine
-        async function stopEngine() {
-            // Show confirmation dialog
-            if (!confirm('Are you sure you want to stop the ingestion engine? Dataset downloads will be paused until you restart it.')) {
-                return;
-            }
+        // Restart Engine
+        document.getElementById('restartBtn').addEventListener('click', async function() {
+            if (!confirm('Restart the ingestion engine?')) return;
 
-            showMessage('Stopping engine...', 'info');
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Restarting...';
 
             try {
-                const response = await fetch('/api/engine/stop', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
+                const response = await fetch('/api/engine/restart', {method: 'POST'});
                 const data = await response.json();
 
-                if (response.ok && data.success) {
-                    showMessage(data.message, 'success');
-                    // Refresh engine status after a moment
-                    setTimeout(() => {
-                        checkEngineStatus();
-                    }, 1000);
+                if (data.success) {
+                    showToast('success', 'Restarted', 'Engine restarted successfully');
+                    setTimeout(() => location.reload(), 2000);
                 } else {
-                    showMessage(data.error || 'Failed to stop engine', 'error');
+                    showToast('error', 'Failed', data.error || 'Restart failed');
                 }
             } catch (error) {
-                showMessage('Error stopping engine: ' + error.message, 'error');
+                showToast('error', 'Error', 'Could not restart engine');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '↻ Restart';
             }
-        }
+        });
 
-        // Restart engine
-        async function restartEngine() {
-            // Show confirmation dialog
-            if (!confirm('Are you sure you want to restart the ingestion engine? This will temporarily stop dataset downloads.')) {
-                return;
-            }
+        // Stop Engine
+        document.getElementById('stopBtn').addEventListener('click', async function() {
+            if (!confirm('Stop the ingestion engine?')) return;
 
-            showMessage('Restarting engine...', 'info');
+            const btn = this;
+            btn.disabled = true;
+            btn.textContent = 'Stopping...';
 
             try {
-                const response = await fetch('/api/engine/restart', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
+                const response = await fetch('/api/engine/stop', {method: 'POST'});
                 const data = await response.json();
 
-                if (response.ok && data.success) {
-                    showMessage(`${data.message} (PID: ${data.pid})`, 'success');
-                    // Refresh engine status after a moment
-                    setTimeout(() => {
-                        checkEngineStatus();
-                        refreshData();
-                    }, 2000);
+                if (data.success) {
+                    showToast('warning', 'Stopped', 'Engine stopped successfully');
+                    setTimeout(() => location.reload(), 1500);
                 } else {
-                    showMessage(data.error || 'Failed to restart engine', 'error');
+                    showToast('error', 'Failed', data.error || 'Stop failed');
                 }
             } catch (error) {
-                showMessage('Error restarting engine: ' + error.message, 'error');
+                showToast('error', 'Error', 'Could not stop engine');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '⏹ Stop';
+            }
+        });
+
+        // Load Datasets
+        async function loadDatasets() {
+            try {
+                const response = await fetch('/api/datasets');
+                const datasets = await response.json();
+
+                const container = document.getElementById('datasets-container');
+
+                if (!datasets || datasets.length === 0) {
+                    container.innerHTML = '<div style="text-align: center; padding: 40px; font-weight: 700; color: #666;">No datasets found</div>';
+                    return;
+                }
+
+                container.innerHTML = datasets.map(dataset => {
+                    const platformBadge = dataset.platform === 'huggingface'
+                        ? '<span class="platform-badge badge-hf">🤗 HF</span>'
+                        : '<span class="platform-badge badge-kaggle">📊 Kaggle</span>';
+
+                    const statusClass = dataset.status === 'completed' ? 'status-completed' :
+                                       dataset.status === 'failed' ? 'status-failed' : 'status-downloading';
+
+                    const tags = dataset.tags && dataset.tags.length > 0
+                        ? `<div class="dataset-tags">${dataset.tags.slice(0, 5).map(tag =>
+                            `<span class="tag">${tag}</span>`
+                          ).join('')}</div>`
+                        : '';
+
+                    return `
+                        <div class="dataset-card">
+                            <div class="dataset-header">
+                                <div class="dataset-title">${dataset.title}</div>
+                                ${platformBadge}
+                            </div>
+                            <div class="dataset-meta">
+                                <span>👤 ${dataset.creator}</span>
+                                <span>💾 ${dataset.size_mb} MB</span>
+                                <span>📥 ${dataset.download_count?.toLocaleString() || 0} downloads</span>
+                                <span class="status-badge ${statusClass}">${dataset.status}</span>
+                            </div>
+                            <a href="${dataset.url}" target="_blank" class="dataset-link">
+                                View on ${dataset.platform === 'huggingface' ? 'Hugging Face' : 'Kaggle'} →
+                            </a>
+                            ${tags}
+                        </div>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error loading datasets:', error);
+                showToast('error', 'Error', 'Failed to load datasets');
             }
         }
 
-        // Check engine status
+        // Load Logs
+        async function loadLogs() {
+            try {
+                const response = await fetch('/api/logs');
+                const data = await response.json();
+
+                const logContainer = document.getElementById('log-container');
+                const logTimestamp = document.getElementById('logTimestamp');
+
+                if (data.logs && data.logs.length > 0) {
+                    logContainer.innerHTML = data.logs.map(log =>
+                        `<div class="log-entry">${log}</div>`
+                    ).join('');
+                } else {
+                    logContainer.innerHTML = '<div style="color: #666;">No logs available</div>';
+                }
+
+                if (data.last_modified) {
+                    const date = new Date(data.last_modified);
+                    logTimestamp.textContent = `Last updated: ${date.toLocaleTimeString()}`;
+                }
+            } catch (error) {
+                console.error('Error loading logs:', error);
+            }
+        }
+
+        // Check Engine Status
         async function checkEngineStatus() {
             try {
                 const response = await fetch('/api/engine/status');
                 const data = await response.json();
 
-                const statusElement = document.getElementById('engine-status');
-                const statusDot = statusElement.querySelector('.status-dot');
+                const statusEl = document.getElementById('engineStatus');
 
                 if (data.running) {
-                    statusDot.classList.remove('stopped');
-                    statusDot.classList.add('running');
-                    statusElement.innerHTML = `<span class="status-dot running"></span> Engine Running (PID: ${data.pid})`;
+                    statusEl.textContent = 'Running';
+                    statusEl.className = 'engine-status running';
                 } else {
-                    statusDot.classList.remove('running');
-                    statusDot.classList.add('stopped');
-                    statusElement.innerHTML = `<span class="status-dot stopped"></span> Engine Stopped`;
+                    statusEl.textContent = 'Stopped';
+                    statusEl.className = 'engine-status stopped';
                 }
             } catch (error) {
                 console.error('Error checking engine status:', error);
-                const statusElement = document.getElementById('engine-status');
-                statusElement.innerHTML = `<span class="status-dot"></span> Status Unknown`;
             }
         }
 
-        // Show message
-        function showMessage(text, type) {
-            const messageDiv = document.getElementById('settings-message');
-            messageDiv.innerHTML = `<div class="message message-${type}">${text}</div>`;
+        // Refresh Button
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            showToast('info', 'Refreshing', 'Loading latest data...');
+            loadAll();
+        });
 
-            // Clear message after 5 seconds
-            setTimeout(() => {
-                messageDiv.innerHTML = '';
-            }, 5000);
+        // Load All Data
+        function loadAll() {
+            loadStatistics();
+            loadPlatform();
+            loadPollingInterval();
+            loadDatasets();
+            loadLogs();
+            checkEngineStatus();
         }
 
-        // Initialize polling settings
-        loadPollingInterval();
-        checkEngineStatus();
+        // Initialize
+        loadAll();
 
-        // Check engine status periodically
-        setInterval(checkEngineStatus, 10000); // Every 10 seconds
+        // Auto-refresh every 30 seconds
+        setInterval(loadAll, 30000);
+
+        // Show welcome toast
+        setTimeout(() => {
+            showToast('success', 'Welcome', 'DataSync Hub is ready!', 3000);
+        }, 500);
     </script>
 </body>
 </html>

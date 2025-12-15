@@ -11,13 +11,14 @@ import sys
 import time
 from datetime import datetime
 
-from src.api.kaggle_client import KaggleClient
+from src.api.base_client import BaseAPIClient
 from src.api.rate_limiter import RateLimiter
 from src.storage.file_store import FileStore
 from src.storage.metadata_store import MetadataStore
 from src.tracking.tracker import Tracker
 from src.tracking.state_manager import StateManager
 from src.services.download_service import DownloadService
+from src.services.platform_factory import PlatformFactory
 from src.utils.logger import get_logger
 
 
@@ -43,14 +44,18 @@ class IngestionService:
         # Initialize all components (Dependency Injection)
         self.logger.info("Initializing ingestion service components...")
 
-        self.kaggle_client = KaggleClient(settings.kaggle)
+        # Create platform-specific API client using factory pattern
+        self.api_client = PlatformFactory.create_client(settings)
+        self.platform_name = self.api_client.get_platform_name()
+        self.logger.info(f"Using platform: {self.platform_name}")
+
         self.rate_limiter = RateLimiter(settings.rate_limit.min_request_interval_seconds)
         self.tracker = Tracker()
         self.state_manager = StateManager(settings.storage.state_dir)
         self.file_store = FileStore(settings.storage.datasets_dir)
         self.metadata_store = MetadataStore(settings.storage.metadata_dir)
         self.download_service = DownloadService(
-            self.kaggle_client,
+            self.api_client,  # Platform-agnostic!
             self.file_store,
             settings
         )
@@ -80,13 +85,14 @@ class IngestionService:
         Main entry point for the ingestion engine.
         """
         self.running = True
-        self.logger.info("Starting Kaggle data ingestion service...")
+        self.logger.info(f"Starting {self.platform_name} data ingestion service...")
 
-        # Authenticate with Kaggle API
+        # Authenticate with platform API
         try:
-            self.kaggle_client.authenticate()
+            self.api_client.authenticate()
+            self.logger.info(f"Successfully authenticated with {self.platform_name}")
         except Exception as e:
-            self.logger.critical(f"Failed to authenticate with Kaggle API: {e}")
+            self.logger.critical(f"Failed to authenticate with {self.platform_name} API: {e}")
             sys.exit(1)
 
         # Main polling loop
@@ -135,13 +141,15 @@ class IngestionService:
             # Rate limit before API call
             self.rate_limiter.wait_if_needed()
 
-            # Fetch recent datasets from Kaggle
-            self.logger.info("Fetching recent datasets from Kaggle API...")
-            datasets = self.kaggle_client.list_recent_datasets(
-                max_size=self.settings.kaggle.max_datasets_per_poll
+            # Fetch recent datasets from platform API
+            max_datasets = PlatformFactory.get_max_datasets_per_poll(self.settings)
+            self.logger.info(f"Fetching recent datasets from {self.platform_name} API...")
+            datasets = self.api_client.list_recent_datasets(
+                max_size=max_datasets,
+                page=1
             )
 
-            self.logger.info(f"Fetched {len(datasets)} datasets from Kaggle API")
+            self.logger.info(f"Fetched {len(datasets)} datasets from {self.platform_name} API")
 
             # Filter new datasets
             new_datasets = [d for d in datasets if self.tracker.is_new_dataset(d.dataset_ref)]

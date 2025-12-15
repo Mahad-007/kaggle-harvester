@@ -33,32 +33,36 @@ class MetadataStore:
         self.base_path.mkdir(parents=True, exist_ok=True)
         self.logger.info(f"MetadataStore initialized with base path: {self.base_path}")
 
-    def _get_metadata_filename(self, dataset_ref: str) -> str:
+    def _get_metadata_filename(self, dataset_ref: str, platform: str = "kaggle") -> str:
         """
         Generate consistent filename for metadata.
-        Format: username__dataset-name.json
+        Format: platform_username__dataset-name.json
 
         Args:
             dataset_ref: Dataset reference (username/dataset-name)
+            platform: Platform name (kaggle or huggingface)
 
         Returns:
             Metadata filename
         """
         # Replace / with __ to create flat file structure
-        filename = dataset_ref.replace('/', '__') + '.json'
+        # Include platform to prevent collisions
+        safe_ref = dataset_ref.replace('/', '__')
+        filename = f"{platform}_{safe_ref}.json"
         return filename
 
-    def _get_metadata_path(self, dataset_ref: str) -> Path:
+    def _get_metadata_path(self, dataset_ref: str, platform: str = "kaggle") -> Path:
         """
         Get full path for metadata file.
 
         Args:
             dataset_ref: Dataset reference (username/dataset-name)
+            platform: Platform name (kaggle or huggingface)
 
         Returns:
             Path to metadata file
         """
-        filename = self._get_metadata_filename(dataset_ref)
+        filename = self._get_metadata_filename(dataset_ref, platform)
         return self.base_path / filename
 
     def save_metadata(self, dataset: Dataset) -> bool:
@@ -73,7 +77,7 @@ class MetadataStore:
             True if successful, False otherwise
         """
         try:
-            metadata_path = self._get_metadata_path(dataset.dataset_ref)
+            metadata_path = self._get_metadata_path(dataset.dataset_ref, dataset.platform)
             temp_path = metadata_path.with_suffix('.json.tmp')
 
             # Convert dataset to dictionary

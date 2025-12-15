@@ -24,9 +24,11 @@ class DatasetFile(BaseModel):
 
 class Dataset(BaseModel):
     """
-    Model for Kaggle dataset with metadata and ingestion tracking.
+    Model for dataset with metadata and ingestion tracking.
+    Supports multiple platforms: Kaggle and Hugging Face.
     Provides type safety and validation for dataset information.
     """
+    platform: str = Field(default="kaggle", description="Source platform: kaggle or huggingface")
     dataset_ref: str = Field(..., description="Dataset reference: username/dataset-name")
     title: str
     subtitle: Optional[str] = None
@@ -135,6 +137,7 @@ class Dataset(BaseModel):
                     tags.append(str(tag))
 
         return cls(
+            platform="kaggle",
             dataset_ref=api_dataset.ref,
             title=api_dataset.title or "",
             subtitle=api_dataset.subtitle,
@@ -149,4 +152,53 @@ class Dataset(BaseModel):
             license_name=api_dataset.licenseName if hasattr(api_dataset, 'licenseName') else None,
             tags=tags,
             files=files
+        )
+
+    @classmethod
+    def from_huggingface_api(cls, api_dataset) -> "Dataset":
+        """
+        Create Dataset instance from Hugging Face API response.
+
+        Args:
+            api_dataset: DatasetInfo object from huggingface_hub
+
+        Returns:
+            Dataset instance
+        """
+        # HuggingFace DatasetInfo structure:
+        # - id: str (e.g., "username/dataset-name")
+        # - downloads: int
+        # - likes: int
+        # - last_modified: datetime
+        # - tags: List[str]
+        # - author: str
+        # - card_data: dict (metadata)
+
+        # Extract author from id if not available
+        author = getattr(api_dataset, 'author', None) or api_dataset.id.split('/')[0]
+
+        # Get license from card_data if available
+        license_name = None
+        if hasattr(api_dataset, 'card_data') and api_dataset.card_data:
+            license_name = getattr(api_dataset.card_data, 'license', None)
+
+        # Create readable title from dataset id
+        title = api_dataset.id.split('/')[-1].replace('-', ' ').replace('_', ' ').title()
+
+        return cls(
+            platform="huggingface",
+            dataset_ref=api_dataset.id,
+            title=title,
+            subtitle=None,
+            creator_name=author,
+            creator_url=f"https://huggingface.co/{author}",
+            total_bytes=0,  # Not available in list API
+            url=f"https://huggingface.co/datasets/{api_dataset.id}",
+            last_updated=api_dataset.last_modified or datetime.now(),
+            download_count=api_dataset.downloads or 0,
+            vote_count=api_dataset.likes or 0,  # Map "likes" to "vote_count"
+            usability_rating=None,
+            license_name=license_name,
+            tags=api_dataset.tags or [],
+            files=[]
         )

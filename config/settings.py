@@ -23,6 +23,23 @@ class KaggleConfig:
 
 
 @dataclass
+class PlatformConfig:
+    """Platform selection configuration."""
+    active: str  # "kaggle" or "huggingface"
+
+
+@dataclass
+class HuggingFaceConfig:
+    """Hugging Face API configuration."""
+    token: Optional[str]  # From HF_TOKEN env var (optional for public datasets)
+    max_datasets_per_poll: int
+    sort_by: str
+    trending_approximation_method: str
+    recency_filter_days: int
+    min_downloads_threshold: int
+
+
+@dataclass
 class PollingConfig:
     """Polling service configuration."""
     interval_seconds: int
@@ -59,7 +76,9 @@ class RateLimitConfig:
 @dataclass
 class Settings:
     """Main settings container. Dependency Inversion: provides abstraction for configuration."""
+    platform: PlatformConfig
     kaggle: KaggleConfig
+    huggingface: HuggingFaceConfig
     polling: PollingConfig
     storage: StorageConfig
     logging: LoggingConfig
@@ -95,13 +114,27 @@ class Settings:
         kaggle_username = os.getenv("KAGGLE_USERNAME")
         kaggle_key = os.getenv("KAGGLE_KEY")
 
+        # Get Hugging Face token from environment (optional)
+        hf_token = os.getenv("HF_TOKEN")
+
         # Build configuration objects
         return cls(
+            platform=PlatformConfig(
+                active=config['platform']['active']
+            ),
             kaggle=KaggleConfig(
                 username=kaggle_username or "",
                 key=kaggle_key or "",
                 max_datasets_per_poll=config['kaggle']['max_datasets_per_poll'],
                 sort_by=config['kaggle']['sort_by']
+            ),
+            huggingface=HuggingFaceConfig(
+                token=hf_token,
+                max_datasets_per_poll=config['huggingface']['max_datasets_per_poll'],
+                sort_by=config['huggingface']['sort_by'],
+                trending_approximation_method=config['huggingface']['trending_approximation_method'],
+                recency_filter_days=config['huggingface']['recency_filter_days'],
+                min_downloads_threshold=config['huggingface']['min_downloads_threshold']
             ),
             polling=PollingConfig(
                 interval_seconds=config['polling']['interval_seconds'],
@@ -137,11 +170,22 @@ class Settings:
         Raises:
             ValueError: If validation fails
         """
-        if not self.kaggle.username or not self.kaggle.key:
+        # Validate platform selection
+        if self.platform.active not in ["kaggle", "huggingface"]:
             raise ValueError(
-                "Kaggle API credentials not configured. "
-                "Please set KAGGLE_USERNAME and KAGGLE_KEY environment variables."
+                f"Invalid platform: {self.platform.active}. "
+                "Must be 'kaggle' or 'huggingface'"
             )
+
+        # Validate platform-specific credentials
+        if self.platform.active == "kaggle":
+            if not self.kaggle.username or not self.kaggle.key:
+                raise ValueError(
+                    "Kaggle API credentials not configured. "
+                    "Please set KAGGLE_USERNAME and KAGGLE_KEY environment variables."
+                )
+
+        # HuggingFace token is optional for public datasets, so no validation needed
 
         if self.polling.interval_seconds < 1:
             raise ValueError("Polling interval must be at least 1 second")

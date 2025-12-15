@@ -64,7 +64,11 @@ def get_statistics():
         "datasets": {
             "total": 0,
             "total_size_mb": 0,
-            "total_size_gb": 0
+            "total_size_gb": 0,
+            "by_platform": {
+                "kaggle": 0,
+                "huggingface": 0
+            }
         },
         "metadata": {
             "total_files": 0
@@ -98,11 +102,22 @@ def get_statistics():
         stats["datasets"]["total_size_mb"] = round(total_size / (1024 * 1024), 2)
         stats["datasets"]["total_size_gb"] = round(total_size / (1024 * 1024 * 1024), 2)
 
-    # Get metadata statistics
+    # Get metadata statistics and count by platform
     metadata_dir = settings.storage.metadata_dir
     if metadata_dir.exists():
         metadata_files = list(metadata_dir.glob('*.json'))
         stats["metadata"]["total_files"] = len(metadata_files)
+
+        # Count datasets by platform
+        for metadata_file in metadata_files:
+            try:
+                with open(metadata_file, 'r') as f:
+                    metadata = json.load(f)
+                    platform = metadata.get('platform', 'kaggle')
+                    if platform in stats["datasets"]["by_platform"]:
+                        stats["datasets"]["by_platform"][platform] += 1
+            except Exception:
+                pass  # Skip files that can't be read
 
     # Get state statistics
     state_file = settings.storage.state_dir / "tracking_state.json"
@@ -152,6 +167,7 @@ def get_recent_datasets(limit=20):
                         'ref': metadata.get('dataset_ref'),
                         'title': metadata.get('title'),
                         'creator': metadata.get('creator_name'),
+                        'platform': metadata.get('platform', 'kaggle'),  # Include platform
                         'size_mb': round(metadata.get('total_bytes', 0) / (1024 * 1024), 2),
                         'status': metadata.get('ingestion_status'),
                         'timestamp': metadata.get('ingestion_timestamp'),
@@ -227,6 +243,131 @@ def api_health():
         'status': 'healthy',
         'timestamp': datetime.now().isoformat()
     })
+
+
+@app.route('/api/platform', methods=['GET'])
+def get_platform():
+    """Get current active platform."""
+    if not settings:
+        return jsonify({'error': 'Settings not loaded'}), 500
+
+    return jsonify({
+        'platform': settings.platform.active,
+        'available_platforms': ['kaggle', 'huggingface']
+    })
+
+
+@app.route('/api/platform', methods=['POST'])
+def set_platform():
+    """Update active platform in config file and optionally restart engine."""
+    import subprocess
+    import signal
+    import time
+
+    try:
+        data = request.get_json()
+        new_platform = data.get('platform', 'kaggle')
+        auto_restart = data.get('auto_restart', False)
+
+        # Validate platform
+        if new_platform not in ['kaggle', 'huggingface']:
+            return jsonify({'error': 'Invalid platform. Must be kaggle or huggingface'}), 400
+
+        # Read current config
+        config_path = Path('config/config.yaml')
+        with open(config_path, 'r') as f:
+            import yaml
+            config = yaml.safe_load(f)
+
+        # Check if platform is already active
+        if config['platform']['active'] == new_platform:
+            return jsonify({
+                'success': True,
+                'platform': new_platform,
+                'message': f'Platform is already set to {new_platform}',
+                'restarted': False
+            })
+
+        # Update platform
+        config['platform']['active'] = new_platform
+
+        # Write back
+        with open(config_path, 'w') as f:
+            yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+        message = f'Platform switched to {new_platform}'
+        restarted = False
+
+        # Auto-restart if requested
+        if auto_restart:
+            try:
+                # Get current PID
+                result = subprocess.run(
+                    ['pgrep', '-f', 'python3 main.py'],
+                    capture_output=True,
+                    text=True
+                )
+
+                if result.stdout.strip():
+                    pid = int(result.stdout.strip())
+                    print(f"Auto-restarting engine (PID: {pid}) for platform switch to {new_platform}")
+
+                    # Send SIGTERM for graceful shutdown
+                    try:
+                        os.kill(pid, signal.SIGTERM)
+                        # Wait up to 5 seconds for graceful shutdown
+                        for _ in range(10):
+                            time.sleep(0.5)
+                            check = subprocess.run(
+                                ['pgrep', '-f', 'python3 main.py'],
+                                capture_output=True,
+                                text=True
+                            )
+                            if not check.stdout.strip():
+                                break
+                        else:
+                            # Force kill if still running
+                            os.kill(pid, signal.SIGKILL)
+                            time.sleep(1)
+                    except ProcessLookupError:
+                        pass  # Process already stopped
+
+                # Start new engine process
+                print(f"Starting engine with {new_platform} platform...")
+                subprocess.Popen(
+                    ['python3', 'main.py'],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    start_new_session=True
+                )
+
+                time.sleep(2)
+
+                # Verify it started
+                verify = subprocess.run(
+                    ['pgrep', '-f', 'python3 main.py'],
+                    capture_output=True,
+                    text=True
+                )
+
+                if verify.stdout.strip():
+                    message = f'Platform switched to {new_platform} and engine restarted successfully'
+                    restarted = True
+                else:
+                    message = f'Platform switched to {new_platform} but engine failed to restart'
+            except Exception as restart_error:
+                print(f"Error during auto-restart: {restart_error}")
+                message = f'Platform switched to {new_platform} but auto-restart failed: {str(restart_error)}'
+
+        return jsonify({
+            'success': True,
+            'platform': new_platform,
+            'message': message,
+            'restarted': restarted
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/config/polling-interval', methods=['GET'])

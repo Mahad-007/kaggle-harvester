@@ -15,6 +15,7 @@ from tenacity import (
     retry_if_exception_type
 )
 
+from src.api.base_client import BaseAPIClient
 from src.models.dataset import Dataset
 from src.utils.logger import get_logger
 
@@ -23,18 +24,19 @@ class DownloadService:
     """
     Coordinates dataset downloads with automatic retry logic.
     Handles download validation and cleanup of failed downloads.
+    Platform-agnostic: works with any BaseAPIClient implementation.
     """
 
-    def __init__(self, kaggle_client, file_store, config):
+    def __init__(self, api_client: BaseAPIClient, file_store, config):
         """
         Initialize download service.
 
         Args:
-            kaggle_client: KaggleClient instance for API access
+            api_client: BaseAPIClient instance for platform API access
             file_store: FileStore instance for file management
             config: Settings configuration object
         """
-        self.kaggle_client = kaggle_client
+        self.api_client = api_client
         self.file_store = file_store
         self.config = config
         self.logger = get_logger(__name__)
@@ -129,7 +131,7 @@ class DownloadService:
             Exception: On download failures (will be retried by tenacity)
         """
         try:
-            return self.kaggle_client.download_dataset(
+            return self.api_client.download_dataset(
                 dataset_ref=dataset_ref,
                 download_path=download_path,
                 unzip=True

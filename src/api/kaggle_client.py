@@ -10,11 +10,12 @@ import os
 from pathlib import Path
 from typing import List, Optional
 
+from src.api.base_client import BaseAPIClient
 from src.models.dataset import Dataset
 from src.utils.logger import get_logger
 
 
-class KaggleClient:
+class KaggleClient(BaseAPIClient):
     """
     Wrapper for Kaggle API with authentication and dataset operations.
     Provides a clean interface for listing and downloading datasets.
@@ -204,3 +205,12 @@ class KaggleClient:
             return metadata is not None
         except Exception:
             return False
+
+    def get_platform_name(self) -> str:
+        """
+        Return the platform name.
+
+        Returns:
+            Platform name 'kaggle'
+        """
+        return "kaggle"
