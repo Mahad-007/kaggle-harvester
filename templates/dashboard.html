@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaggle Data Ingestion Engine - Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #667eea;
+            font-size: 32px;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-sublabel {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .dataset-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .dataset-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .dataset-item:hover {
+            background: #e9ecef;
+            border-left-color: #764ba2;
+        }
+
+        .dataset-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .dataset-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .dataset-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .tag {
+            background: #667eea;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+
+        .logs {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+
+        .log-line {
+            margin-bottom: 4px;
+        }
+
+        .log-info { color: #4ec9b0; }
+        .log-warning { color: #dcdcaa; }
+        .log-error { color: #f48771; }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            float: right;
+        }
+
+        .refresh-btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .last-updated {
+            color: #999;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: right;
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Kaggle Data Ingestion Engine</h1>
+            <p class="subtitle">Real-time monitoring dashboard for automated dataset collection</p>
+        </header>
+
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Datasets</div>
+                <div class="stat-value" id="total-datasets">-</div>
+                <div class="stat-sublabel">Downloaded locally</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Storage Used</div>
+                <div class="stat-value" id="storage-used">-</div>
+                <div class="stat-sublabel" id="storage-available">Available: -</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Successful</div>
+                <div class="stat-value" id="successful-downloads">-</div>
+                <div class="stat-sublabel">Downloads completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Failed</div>
+                <div class="stat-value" id="failed-downloads" style="color: #f48771;">-</div>
+                <div class="stat-sublabel">Downloads failed</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                Recent Datasets
+                <button class="refresh-btn" onclick="refreshData()">↻ Refresh</button>
+            </h2>
+            <div id="datasets-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading datasets...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">Recent Logs</h2>
+            <div class="logs" id="logs-container">
+                <div class="loading">Loading logs...</div>
+            </div>
+            <div class="last-updated" id="last-updated">Last updated: -</div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh interval (30 seconds)
+        const REFRESH_INTERVAL = 30000;
+        let refreshTimer;
+
+        // Fetch statistics
+        async function fetchStatistics() {
+            try {
+                const response = await fetch('/api/statistics');
+                const stats = await response.json();
+
+                document.getElementById('total-datasets').textContent = stats.datasets.total;
+                document.getElementById('storage-used').textContent = stats.datasets.total_size_gb + ' GB';
+                document.getElementById('storage-available').textContent = 'Available: ' + stats.storage.available_space_gb + ' GB';
+                document.getElementById('successful-downloads').textContent = stats.state.successful_downloads;
+                document.getElementById('failed-downloads').textContent = stats.state.failed_downloads;
+            } catch (error) {
+                console.error('Error fetching statistics:', error);
+            }
+        }
+
+        // Fetch datasets
+        async function fetchDatasets() {
+            try {
+                const response = await fetch('/api/datasets?limit=20');
+                const datasets = await response.json();
+
+                const container = document.getElementById('datasets-container');
+
+                if (datasets.length === 0) {
+                    container.innerHTML = '<div class="loading">No datasets found yet. The engine will start downloading soon.</div>';
+                    return;
+                }
+
+                container.innerHTML = datasets.map(dataset => `
+                    <div class="dataset-item">
+                        <div class="dataset-title">${dataset.title || dataset.ref}</div>
+                        <div class="dataset-meta">
+                            <span>👤 ${dataset.creator}</span>
+                            <span>💾 ${dataset.size_mb} MB</span>
+                            <span>📥 ${dataset.download_count} downloads</span>
+                            <span class="status status-${dataset.status}">${dataset.status}</span>
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <a href="${dataset.url}" target="_blank" style="color: #667eea; text-decoration: none; font-size: 14px;">
+                                View on Kaggle →
+                            </a>
+                        </div>
+                        ${dataset.tags && dataset.tags.length > 0 ? `
+                            <div class="tags">
+                                ${dataset.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error fetching datasets:', error);
+            }
+        }
+
+        // Fetch logs
+        async function fetchLogs() {
+            try {
+                const response = await fetch('/api/logs?lines=30');
+                const logs = await response.json();
+
+                const container = document.getElementById('logs-container');
+
+                if (logs.length === 0) {
+                    container.innerHTML = '<div class="loading">No logs available yet.</div>';
+                    return;
+                }
+
+                container.innerHTML = logs.map(log => {
+                    let className = 'log-line';
+                    if (log.includes('[INFO]')) className += ' log-info';
+                    else if (log.includes('[WARNING]')) className += ' log-warning';
+                    else if (log.includes('[ERROR]')) className += ' log-error';
+
+                    return `<div class="${className}">${escapeHtml(log)}</div>`;
+                }).join('');
+
+                // Scroll to bottom
+                container.scrollTop = container.scrollHeight;
+
+                // Update last updated time
+                document.getElementById('last-updated').textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+            } catch (error) {
+                console.error('Error fetching logs:', error);
+            }
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Refresh all data
+        async function refreshData() {
+            await Promise.all([
+                fetchStatistics(),
+                fetchDatasets(),
+                fetchLogs()
+            ]);
+        }
+
+        // Start auto-refresh
+        function startAutoRefresh() {
+            clearInterval(refreshTimer);
+            refreshTimer = setInterval(refreshData, REFRESH_INTERVAL);
+        }
+
+        // Initial load
+        refreshData();
+        startAutoRefresh();
+
+        // Refresh when page becomes visible
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                refreshData();
+            }
+        });
+    </script>
+</body>
+</html>

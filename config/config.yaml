@@ -1,0 +1,30 @@
+# Kaggle API Settings
+kaggle:
+  max_datasets_per_poll: 100
+  sort_by: "updated"
+
+# Polling Configuration
+polling:
+  interval_seconds: 3600  # 1 hour
+  retry_attempts: 3
+  retry_backoff_factor: 2
+  initial_retry_delay: 4
+
+# Storage Paths
+storage:
+  datasets_dir: "./data/datasets"
+  metadata_dir: "./data/metadata"
+  state_dir: "./data/state"
+
+# Logging
+logging:
+  level: "INFO"
+  file: "./logs/kaggle_ingestion.log"
+  max_bytes: 10485760  # 10MB
+  backup_count: 5
+  console_level: "INFO"
+
+# Rate Limiting
+rate_limit:
+  min_request_interval_seconds: 1
+  max_concurrent_downloads: 3
