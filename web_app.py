@@ -294,6 +294,76 @@ def engine_status():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/engine/stop', methods=['POST'])
+def stop_engine():
+    """Stop the ingestion engine."""
+    import subprocess
+    import signal
+    import time
+
+    try:
+        # Get current PID
+        result = subprocess.run(
+            ['pgrep', '-f', 'python3 main.py'],
+            capture_output=True,
+            text=True
+        )
+
+        if not result.stdout.strip():
+            return jsonify({
+                'success': False,
+                'error': 'Engine is not running'
+            }), 400
+
+        pid = int(result.stdout.strip())
+        print(f"Stopping engine with PID: {pid}")
+
+        # Send SIGTERM for graceful shutdown
+        try:
+            os.kill(pid, signal.SIGTERM)
+            # Wait up to 5 seconds for graceful shutdown
+            for _ in range(10):
+                time.sleep(0.5)
+                check = subprocess.run(
+                    ['pgrep', '-f', 'python3 main.py'],
+                    capture_output=True,
+                    text=True
+                )
+                if not check.stdout.strip():
+                    break
+            else:
+                # Force kill if still running
+                print(f"Force stopping engine with PID: {pid}")
+                os.kill(pid, signal.SIGKILL)
+                time.sleep(1)
+        except ProcessLookupError:
+            pass  # Process already stopped
+
+        # Verify it stopped
+        verify = subprocess.run(
+            ['pgrep', '-f', 'python3 main.py'],
+            capture_output=True,
+            text=True
+        )
+
+        if not verify.stdout.strip():
+            return jsonify({
+                'success': True,
+                'message': 'Engine stopped successfully'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to stop engine'
+            }), 500
+
+    except Exception as e:
+        print(f"Error stopping engine: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/engine/restart', methods=['POST'])
 def restart_engine():
     """Restart the ingestion engine."""

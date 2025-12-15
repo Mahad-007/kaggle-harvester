@@ -337,6 +337,23 @@
             transform: translateY(-2px);
         }
 
+        .stop-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .stop-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
         .message {
             padding: 12px;
             border-radius: 8px;
@@ -438,9 +455,10 @@
                                    style="width: 100px; padding: 8px; border: 2px solid #667eea; border-radius: 8px; font-size: 16px;">
                             <span style="color: #666;">seconds</span>
                         </div>
-                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                        <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
                             <button class="apply-btn" onclick="applyInterval()">✓ Apply Changes</button>
                             <button class="restart-btn" onclick="restartEngine()">↻ Restart Engine</button>
+                            <button class="stop-btn" onclick="stopEngine()">⏹ Stop Engine</button>
                         </div>
                     </div>
                     <div id="settings-message" style="margin-top: 15px;"></div>
@@ -671,6 +689,39 @@
                 }
             } catch (error) {
                 showMessage('Error updating interval: ' + error.message, 'error');
+            }
+        }
+
+        // Stop engine
+        async function stopEngine() {
+            // Show confirmation dialog
+            if (!confirm('Are you sure you want to stop the ingestion engine? Dataset downloads will be paused until you restart it.')) {
+                return;
+            }
+
+            showMessage('Stopping engine...', 'info');
+
+            try {
+                const response = await fetch('/api/engine/stop', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showMessage(data.message, 'success');
+                    // Refresh engine status after a moment
+                    setTimeout(() => {
+                        checkEngineStatus();
+                    }, 1000);
+                } else {
+                    showMessage(data.error || 'Failed to stop engine', 'error');
+                }
+            } catch (error) {
+                showMessage('Error stopping engine: ' + error.message, 'error');
             }
         }
 
