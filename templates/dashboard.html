@@ -425,11 +425,11 @@
                     </label>
                     <div style="margin: 20px 0;">
                         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                            <button class="preset-btn" onclick="setInterval(60)">1 min</button>
-                            <button class="preset-btn" onclick="setInterval(300)">5 min</button>
-                            <button class="preset-btn" onclick="setInterval(900)">15 min</button>
-                            <button class="preset-btn" onclick="setInterval(1800)">30 min</button>
-                            <button class="preset-btn" onclick="setInterval(3600)">1 hour</button>
+                            <button class="preset-btn" onclick="setPollingInterval(60)">1 min</button>
+                            <button class="preset-btn" onclick="setPollingInterval(300)">5 min</button>
+                            <button class="preset-btn" onclick="setPollingInterval(900)">15 min</button>
+                            <button class="preset-btn" onclick="setPollingInterval(1800)">30 min</button>
+                            <button class="preset-btn" onclick="setPollingInterval(3600)">1 hour</button>
                         </div>
                         <div style="display: flex; align-items: center; gap: 15px;">
                             <input type="range" id="interval-slider" min="60" max="3600" step="60" value="60"
@@ -629,7 +629,7 @@
         }
 
         // Set interval from preset buttons
-        function setInterval(seconds) {
+        function setPollingInterval(seconds) {
             intervalInput.value = seconds;
             if (seconds >= 60 && seconds <= 3600) {
                 intervalSlider.value = seconds;
