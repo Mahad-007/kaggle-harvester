@@ -294,6 +294,84 @@ def engine_status():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/engine/restart', methods=['POST'])
+def restart_engine():
+    """Restart the ingestion engine."""
+    import subprocess
+    import signal
+    import time
+
+    try:
+        # Get current PID
+        result = subprocess.run(
+            ['pgrep', '-f', 'python3 main.py'],
+            capture_output=True,
+            text=True
+        )
+
+        if result.stdout.strip():
+            pid = int(result.stdout.strip())
+            print(f"Stopping engine with PID: {pid}")
+
+            # Send SIGTERM for graceful shutdown
+            try:
+                os.kill(pid, signal.SIGTERM)
+                # Wait up to 5 seconds for graceful shutdown
+                for _ in range(10):
+                    time.sleep(0.5)
+                    check = subprocess.run(
+                        ['pgrep', '-f', 'python3 main.py'],
+                        capture_output=True,
+                        text=True
+                    )
+                    if not check.stdout.strip():
+                        break
+                else:
+                    # Force kill if still running
+                    print(f"Force stopping engine with PID: {pid}")
+                    os.kill(pid, signal.SIGKILL)
+                    time.sleep(1)
+            except ProcessLookupError:
+                pass  # Process already stopped
+
+        # Start new engine process
+        print("Starting new engine process...")
+        subprocess.Popen(
+            ['python3', 'main.py'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True
+        )
+
+        # Wait a moment for the process to start
+        time.sleep(2)
+
+        # Verify it started
+        verify = subprocess.run(
+            ['pgrep', '-f', 'python3 main.py'],
+            capture_output=True,
+            text=True
+        )
+
+        if verify.stdout.strip():
+            return jsonify({
+                'success': True,
+                'message': 'Engine restarted successfully',
+                'pid': verify.stdout.strip()
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Engine failed to start'
+            }), 500
+
+    except Exception as e:
+        print(f"Error restarting engine: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist
     Path('templates').mkdir(exist_ok=True)

@@ -676,7 +676,36 @@
 
         // Restart engine
         async function restartEngine() {
-            showMessage('Restart feature is not yet implemented. Please manually restart the engine using: python3 main.py', 'info');
+            // Show confirmation dialog
+            if (!confirm('Are you sure you want to restart the ingestion engine? This will temporarily stop dataset downloads.')) {
+                return;
+            }
+
+            showMessage('Restarting engine...', 'info');
+
+            try {
+                const response = await fetch('/api/engine/restart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    showMessage(`${data.message} (PID: ${data.pid})`, 'success');
+                    // Refresh engine status after a moment
+                    setTimeout(() => {
+                        checkEngineStatus();
+                        refreshData();
+                    }, 2000);
+                } else {
+                    showMessage(data.error || 'Failed to restart engine', 'error');
+                }
+            } catch (error) {
+                showMessage('Error restarting engine: ' + error.message, 'error');
+            }
         }
 
         // Check engine status
