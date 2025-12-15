@@ -13,12 +13,46 @@ from config.settings import Settings
 
 app = Flask(__name__)
 
+# Create necessary directories on startup
+def initialize_directories():
+    """Create necessary directories if they don't exist."""
+    dirs = [
+        Path('data/datasets'),
+        Path('data/metadata'),
+        Path('data/state'),
+        Path('logs'),
+        Path('templates')
+    ]
+    for directory in dirs:
+        directory.mkdir(parents=True, exist_ok=True)
+        print(f"✓ Directory ensured: {directory}")
+
+# Initialize directories
+try:
+    initialize_directories()
+except Exception as e:
+    print(f"Warning: Could not create directories: {e}")
+
 # Load settings
 try:
     settings = Settings.load()
+    print("✓ Settings loaded successfully")
+    if settings:
+        settings.validate()
+        print("✓ Settings validated successfully")
 except Exception as e:
     print(f"Warning: Could not load settings: {e}")
+    import traceback
+    traceback.print_exc()
     settings = None
+
+# Print startup message
+print("=" * 60)
+print("Kaggle Data Ingestion Engine - Web Dashboard")
+print("=" * 60)
+print(f"✓ Flask app initialized")
+print(f"✓ Settings status: {'Loaded' if settings else 'Not loaded (will use limited functionality)'}")
+print("=" * 60)
 
 
 def get_statistics():
@@ -153,7 +187,17 @@ def get_recent_logs(lines=50):
 @app.route('/')
 def dashboard():
     """Main dashboard page."""
-    return render_template('dashboard.html')
+    try:
+        print("Rendering dashboard...")
+        return render_template('dashboard.html')
+    except Exception as e:
+        print(f"Error rendering dashboard: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': 'Failed to render dashboard',
+            'message': str(e)
+        }), 500
 
 
 @app.route('/api/statistics')
@@ -185,15 +229,83 @@ def api_health():
     })
 
 
+@app.route('/api/config/polling-interval', methods=['GET'])
+def get_polling_interval():
+    """Get current polling interval."""
+    if not settings:
+        return jsonify({'error': 'Settings not loaded'}), 500
+
+    return jsonify({
+        'interval_seconds': settings.polling.interval_seconds
+    })
+
+
+@app.route('/api/config/polling-interval', methods=['POST'])
+def update_polling_interval():
+    """Update polling interval in config file."""
+    try:
+        data = request.get_json()
+        new_interval = int(data.get('interval_seconds', 60))
+
+        # Validate interval (between 10 seconds and 24 hours)
+        if new_interval < 10 or new_interval > 86400:
+            return jsonify({'error': 'Interval must be between 10 and 86400 seconds'}), 400
+
+        # Read current config file
+        config_path = Path('config/config.yaml')
+        with open(config_path, 'r') as f:
+            import yaml
+            config = yaml.safe_load(f)
+
+        # Update polling interval
+        config['polling']['interval_seconds'] = new_interval
+
+        # Write back to file
+        with open(config_path, 'w') as f:
+            yaml.dump(config, f, default_flow_style=False, sort_keys=False)
+
+        return jsonify({
+            'success': True,
+            'interval_seconds': new_interval,
+            'message': 'Polling interval updated. Restart the engine for changes to take effect.'
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/engine/status')
+def engine_status():
+    """Check if the ingestion engine is running."""
+    import subprocess
+    try:
+        result = subprocess.run(
+            ['pgrep', '-f', 'python3 main.py'],
+            capture_output=True,
+            text=True
+        )
+        is_running = bool(result.stdout.strip())
+
+        return jsonify({
+            'running': is_running,
+            'pid': result.stdout.strip() if is_running else None
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist
     Path('templates').mkdir(exist_ok=True)
 
+    # Get port from environment variable or default to 5000
+    port = int(os.getenv('PORT', 5000))
+
     print("=" * 60)
     print("Kaggle Data Ingestion Engine - Web Dashboard")
     print("=" * 60)
-    print(f"Starting dashboard on http://localhost:5000")
+    print(f"Starting dashboard on http://localhost:{port}")
     print("Press Ctrl+C to stop")
     print("=" * 60)
 
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)

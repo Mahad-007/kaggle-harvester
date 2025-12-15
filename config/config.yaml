@@ -5,7 +5,7 @@ kaggle:
 
 # Polling Configuration
 polling:
-  interval_seconds: 3600  # 1 hour
+  interval_seconds: 60  # 1 minute (very frequent polling)
   retry_attempts: 3
   retry_backoff_factor: 2
   initial_retry_delay: 4

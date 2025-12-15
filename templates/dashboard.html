@@ -238,6 +238,135 @@
             text-align: right;
         }
 
+        .settings-panel {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .setting-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .engine-status {
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #999;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.running {
+            background: #28a745;
+        }
+
+        .status-dot.stopped {
+            background: #dc3545;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .preset-btn {
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .preset-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .preset-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .apply-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .apply-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+        }
+
+        .restart-btn {
+            background: #ffc107;
+            color: #333;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .restart-btn:hover {
+            background: #e0a800;
+            transform: translateY(-2px);
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         @media (max-width: 768px) {
             .stats-grid {
                 grid-template-columns: 1fr;
@@ -245,6 +374,11 @@
 
             h1 {
                 font-size: 24px;
+            }
+
+            .preset-btn {
+                padding: 6px 12px;
+                font-size: 12px;
             }
         }
     </style>
@@ -276,6 +410,41 @@
                 <div class="stat-label">Failed</div>
                 <div class="stat-value" id="failed-downloads" style="color: #f48771;">-</div>
                 <div class="stat-sublabel">Downloads failed</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">⚙️ Settings</h2>
+            <div class="settings-panel">
+                <div class="setting-item">
+                    <label class="setting-label">
+                        <span style="font-size: 18px; font-weight: 600;">Polling Interval</span>
+                        <span class="engine-status" id="engine-status">
+                            <span class="status-dot"></span> Checking...
+                        </span>
+                    </label>
+                    <div style="margin: 20px 0;">
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <button class="preset-btn" onclick="setInterval(60)">1 min</button>
+                            <button class="preset-btn" onclick="setInterval(300)">5 min</button>
+                            <button class="preset-btn" onclick="setInterval(900)">15 min</button>
+                            <button class="preset-btn" onclick="setInterval(1800)">30 min</button>
+                            <button class="preset-btn" onclick="setInterval(3600)">1 hour</button>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 15px;">
+                            <input type="range" id="interval-slider" min="60" max="3600" step="60" value="60"
+                                   style="flex: 1; height: 8px; border-radius: 5px;">
+                            <input type="number" id="interval-input" min="10" max="86400" value="60"
+                                   style="width: 100px; padding: 8px; border: 2px solid #667eea; border-radius: 8px; font-size: 16px;">
+                            <span style="color: #666;">seconds</span>
+                        </div>
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button class="apply-btn" onclick="applyInterval()">✓ Apply Changes</button>
+                            <button class="restart-btn" onclick="restartEngine()">↻ Restart Engine</button>
+                        </div>
+                    </div>
+                    <div id="settings-message" style="margin-top: 15px;"></div>
+                </div>
             </div>
         </div>
 
@@ -425,6 +594,133 @@
                 refreshData();
             }
         });
+
+        // Polling Interval Management
+        const intervalSlider = document.getElementById('interval-slider');
+        const intervalInput = document.getElementById('interval-input');
+
+        // Sync slider and input
+        intervalSlider.addEventListener('input', (e) => {
+            intervalInput.value = e.target.value;
+        });
+
+        intervalInput.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            if (value >= 60 && value <= 3600) {
+                intervalSlider.value = value;
+            }
+        });
+
+        // Load current polling interval
+        async function loadPollingInterval() {
+            try {
+                const response = await fetch('/api/config/polling-interval');
+                const data = await response.json();
+
+                if (data.interval_seconds) {
+                    intervalInput.value = data.interval_seconds;
+                    if (data.interval_seconds >= 60 && data.interval_seconds <= 3600) {
+                        intervalSlider.value = data.interval_seconds;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading polling interval:', error);
+            }
+        }
+
+        // Set interval from preset buttons
+        function setInterval(seconds) {
+            intervalInput.value = seconds;
+            if (seconds >= 60 && seconds <= 3600) {
+                intervalSlider.value = seconds;
+            }
+
+            // Update active state
+            document.querySelectorAll('.preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        // Apply interval changes
+        async function applyInterval() {
+            const seconds = parseInt(intervalInput.value);
+
+            if (seconds < 10 || seconds > 86400) {
+                showMessage('Interval must be between 10 and 86400 seconds', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/config/polling-interval', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        interval_seconds: seconds
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage(data.message, 'success');
+                } else {
+                    showMessage(data.error || 'Failed to update interval', 'error');
+                }
+            } catch (error) {
+                showMessage('Error updating interval: ' + error.message, 'error');
+            }
+        }
+
+        // Restart engine
+        async function restartEngine() {
+            showMessage('Restart feature is not yet implemented. Please manually restart the engine using: python3 main.py', 'info');
+        }
+
+        // Check engine status
+        async function checkEngineStatus() {
+            try {
+                const response = await fetch('/api/engine/status');
+                const data = await response.json();
+
+                const statusElement = document.getElementById('engine-status');
+                const statusDot = statusElement.querySelector('.status-dot');
+
+                if (data.running) {
+                    statusDot.classList.remove('stopped');
+                    statusDot.classList.add('running');
+                    statusElement.innerHTML = `<span class="status-dot running"></span> Engine Running (PID: ${data.pid})`;
+                } else {
+                    statusDot.classList.remove('running');
+                    statusDot.classList.add('stopped');
+                    statusElement.innerHTML = `<span class="status-dot stopped"></span> Engine Stopped`;
+                }
+            } catch (error) {
+                console.error('Error checking engine status:', error);
+                const statusElement = document.getElementById('engine-status');
+                statusElement.innerHTML = `<span class="status-dot"></span> Status Unknown`;
+            }
+        }
+
+        // Show message
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('settings-message');
+            messageDiv.innerHTML = `<div class="message message-${type}">${text}</div>`;
+
+            // Clear message after 5 seconds
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        // Initialize polling settings
+        loadPollingInterval();
+        checkEngineStatus();
+
+        // Check engine status periodically
+        setInterval(checkEngineStatus, 10000); // Every 10 seconds
     </script>
 </body>
 </html>
